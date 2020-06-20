@@ -1,18 +1,17 @@
-#[allow(unused_variables)]
-#[allow(dead_code)]
-#[allow(unused_imports)]
 mod tasks {
     use std::{
         boxed::Box,
         collections::VecDeque,
         future::Future,
         pin::Pin,
-        sync::{Arc, Mutex, mpsc},
+        sync::{Arc, Mutex, mpsc, Barrier},
         task::{Context, Poll, Waker},
         mem,
         convert::AsRef,
         ops::DerefMut,
         marker::Send,
+        thread,
+        time,
     };
 
     use threadpool::ThreadPool;
@@ -144,12 +143,18 @@ mod tasks {
             let shared_state = task.shared_state.clone();
 
             self.pool.execute(move || {
-                let mut mutex = shared_state.lock().unwrap();
-                mutex.status = TaskStatus::Running;
-    
-                mutex.output = Some(fun());
-                
-                mutex.status = TaskStatus::Completed;
+                {
+                    let mut mutex = shared_state.lock().unwrap();
+                    mutex.status = TaskStatus::Running;
+                }
+
+                let output = fun();
+
+                {
+                    let mut mutex = shared_state.lock().unwrap();
+                    mutex.output = Some(output);
+                    mutex.status = TaskStatus::Completed;
+                }
             });
             
             return task;
@@ -162,7 +167,7 @@ mod tasks {
         use super::*;
     
         #[test]
-        fn test_run_single_task() {
+        fn run_single_task() {
             let mut system = TaskSystem::new(1);
 
             let mut task = system.run(move|| {
@@ -172,6 +177,25 @@ mod tasks {
             task.wait();
             assert_eq!(task.status(), TaskStatus::Completed);
             assert_eq!(task.value().unwrap(), 1);
+            assert_eq!(task.value(), Err(GetValueError::AlreadyTaken));
+        }
+
+        #[test]
+        fn run_single_blocking_task() {
+            let mut system = TaskSystem::new(1);
+
+            let barrier = Arc::new(Barrier::new(2));
+            let barrier_clone = barrier.clone();
+            let mut task = system.run(move|| {
+                barrier_clone.wait();
+            });
+
+            thread::sleep(time::Duration::from_secs(1));
+            assert_eq!(task.status(), TaskStatus::Running);
+            barrier.wait();
+            task.wait();
+            assert_eq!(task.status(), TaskStatus::Completed);
+            assert_eq!(task.value(), Ok(()));
             assert_eq!(task.value(), Err(GetValueError::AlreadyTaken));
         }
     }
