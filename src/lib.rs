@@ -1,17 +1,7 @@
 mod tasks {
     use std::{
-        boxed::Box,
-        collections::VecDeque,
-        future::Future,
-        pin::Pin,
-        sync::{Arc, Mutex, mpsc, Barrier},
-        task::{Context, Poll, Waker},
-        mem,
-        convert::AsRef,
-        ops::DerefMut,
+        sync::{Arc, Mutex, mpsc},
         marker::Send,
-        thread,
-        time,
     };
 
     use threadpool::ThreadPool;
@@ -51,7 +41,6 @@ mod tasks {
     
     impl<O> TaskSharedState<O> {
         fn new() -> Self {
-            let (tx, rx) = mpsc::channel::<()>();
             return Self{ 
                 status: TaskStatus::None,
                 output: None,
@@ -108,7 +97,6 @@ mod tasks {
         }
 
         fn wait(&mut self) {
-            let mut receiver: std::sync::mpsc::Receiver<()>;
             {
                 loop {
                     let mutex = self.shared_state.lock().unwrap();
@@ -164,6 +152,11 @@ mod tasks {
     // *********************************************************************************************
     #[cfg(test)]
     mod tests {
+        use std::{
+            thread,
+            time,
+            sync::{Barrier},
+        };
         use super::*;
     
         #[test]
