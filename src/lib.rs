@@ -1,6 +1,6 @@
 mod tasks {
     use std::{
-        sync::{Arc, Mutex, mpsc},
+        sync::{Arc, Mutex},
         marker::Send,
     };
 
