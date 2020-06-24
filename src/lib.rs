@@ -1,4 +1,4 @@
-mod tasks {
+pub mod tasks {
     use std::{
         sync::{Arc, Mutex},
         marker::Send,
@@ -49,7 +49,7 @@ mod tasks {
     }
 
     // *********************************************************************************************
-    struct Task<O> {
+    pub struct Task<O> {
         shared_state: Arc<Mutex<TaskSharedState<O>>>,
     }
 
@@ -109,7 +109,7 @@ mod tasks {
     }
 
     // *********************************************************************************************
-    struct TaskSystem {
+    pub struct TaskSystem {
         pool: ThreadPool,
     }
 

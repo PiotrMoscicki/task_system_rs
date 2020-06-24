@@ -1,6 +1,6 @@
 [package]
 name = "task_system"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Squares <m.piotr@moscicki.pl>"]
 edition = "2018"
 
